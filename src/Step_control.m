@@ -2,7 +2,7 @@ function [step_new] = Step_control(step_old,xx,step_ctl)
 %STEP_CONTROL(XX,IS_CONVERGED,STEP_CTL); Summary of this function goes here
 %   Detailed explanation goes here
 %%
-if ~xx(end).is_Converged
+if ~xx(end).is_Converged || xx(end).teta + step_old > pi/2
     step_new=step_old/2;
 else
     switch step_ctl

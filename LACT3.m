@@ -12,7 +12,7 @@
 %                          Natalia Pingaro,                               %
 %                          Luis C.M. da Silva,                            %
 %                          Gabriele Milani                                %
-%                                                        February 6, 2025 %
+%                                                           April 2, 2025 %
 %-------------------------------------------------------------------------%
 % Cited as:                                                               %
 % Y. Hua, M. Buzzetti, N. Pingaro, L.C.M. da Silva, G. Milani. A compu-   %
@@ -33,7 +33,7 @@ cd(current_path);
 addpath(genpath(current_path));
 %% Configuration setting
 % figure
-global lb1 ax1 ax2 ax3 ax4 ef1 ef2 ef3 ef4 ef5 dd tg t4 tt1 tt2 sp fig
+global lb1 ax1 ax2 ax3 ax4 ef1 ef2 ef3 ef4 ef5 ef6 dd tg t4 tt1 tt2 sp fig
 ss=get(0,"ScreenSize");
 fig = uifigure('Position',[150,150,ss(3:4)*0.75],"Name","Tilt test analysis");
 gl = uigridlayout(fig,[3 3]);
@@ -98,20 +98,27 @@ tt2=uitextarea(g4,"Enable","off");
 tt2.Layout.Row=3;
 tt2.Layout.Column=[1 2];
 
-g5 = uigridlayout(t2,[2 2]);
-g5.RowHeight={"fit","fit"};
+g5 = uigridlayout(t2,[4 2]);
+g5.RowHeight={"fit","fit","fit","fit"};
 lb2=uilabel(g5,"Text","Friction angle");
 lb2.Layout.Row=1;
 lb2.Layout.Column=1;
 lb3=uilabel(g5,"Text","Cohesion");
 lb3.Layout.Row=2;
 lb3.Layout.Column=1;
-ef1 = uieditfield(g5,"numeric","ValueDisplayFormat","%.2f°","Limits",[0 Inf],"Value",30);
+lb9=uilabel(g5,"Text","Density");
+lb9.Layout.Row=3;
+lb9.Layout.Column=1;
+ef1 = uieditfield(g5,"numeric","ValueDisplayFormat","%.2f\x00B0","Limits",[0 Inf],"Value",30);
 ef1.Layout.Row=1;
 ef1.Layout.Column=2;
 ef2 = uieditfield(g5,'numeric',"ValueDisplayFormat","%.2fMPa","Limits",[0 Inf]);
 ef2.Layout.Row=2;
 ef2.Layout.Column=2;
+ef6 = uieditfield(g5,"numeric","ValueDisplayFormat","%.2fkg/m\x00B3","Limits",[0 Inf],"Value",2500);
+% set(ef6, 'Interpreter', 'tex');
+ef6.Layout.Row=3;
+ef6.Layout.Column=2;
 
 g6 = uigridlayout(t3,[4 2]);
 g6.RowHeight={"fit","fit","fit","fit"};
@@ -127,10 +134,10 @@ lb6.Layout.Column=1;
 lb7=uilabel(g6,"Text","Step control");
 lb7.Layout.Row=4;
 lb7.Layout.Column=1;
-ef3 = uieditfield(g6,"numeric","ValueDisplayFormat","%.2f°","Limits",[0 Inf]);
+ef3 = uieditfield(g6,"numeric","ValueDisplayFormat","%.2f\x00B0","Limits",[0 Inf]);
 ef3.Layout.Row=1;
 ef3.Layout.Column=2;
-ef4 = uieditfield(g6,'numeric',"ValueDisplayFormat","%.2f°","Limits",[1e-3 Inf],"Value",1);
+ef4 = uieditfield(g6,'numeric',"ValueDisplayFormat","%.2f\x00B0","Limits",[1e-3 Inf],"Value",1);
 ef4.Layout.Row=2;
 ef4.Layout.Column=2;
 ef5 = uieditfield(g6,"numeric","ValueDisplayFormat","%.2e","Limits",[1e-6 Inf],"Value",0.01);
@@ -187,7 +194,7 @@ function PltButtonPushed(src,event)
 end
 
 function RunButtonPushed(src,event) 
-    global ef1 ef2 ef3 ef4 ef5 dd ax2 ax3 ax4 P polyL int_i tg t4 tt1 sp xx Converged_step fig scale_u scale_f
+    global ef1 ef2 ef3 ef4 ef5 ef6 dd ax2 ax3 ax4 P polyL int_i tg t4 tt1 sp xx Converged_step fig scale_u scale_f
     xx=struct();
     d=uiprogressdlg(fig,'Title','Run analysis','Indeterminate','on','Cancelable','on');
     d.Message = 'Initial setting';
@@ -205,13 +212,13 @@ function RunButtonPushed(src,event)
     % axis(ax2,"normal")
     % axis(ax3,"normal")
     % Material assignment
-    [polyL, int_i] = Material(polyL, int_i, c, phi, 1, 25);
+    [polyL, int_i] = Material(polyL, int_i, c, phi, 1, ef6.Value);
     MaxIterNum=90;
     step = ef4.Value*pi/180;
     xx(1).teta = ef3.Value*pi/180;
     i=1;
     Last_converged_teta=0;
-    while i<MaxIterNum
+    while i<MaxIterNum && xx(i).teta<pi/2
         d.Message = sprintf('Solving iteration %d',i);
         [xx(i).ub,xx(i).pval] = Solver_in_UB(P, polyL, int_i, xx(i).teta);
         [xx(i).lb,xx(i).dval] = Solver_in_LB(P, polyL, int_i, xx(i).teta);
@@ -227,7 +234,7 @@ function RunButtonPushed(src,event)
         if step>tol
             i=i+1;
             step = Step_control(step,xx,step_ctl);
-            xx(i).teta = Last_converged_teta + step;            
+            xx(i).teta = min(Last_converged_teta + step, pi/2);            
         else
             break;
         end
@@ -251,11 +258,11 @@ function RunButtonPushed(src,event)
         % Write output message
         tt1.Value=sprintf(join(["------------------Collapse results summary------------------",...
                                 ">> Limit solution:",...
-                                "   - Collapse tilt angle: %.2f°",...
+                                "   - Collapse tilt angle: %.2f\x00B0",...
                                 "   - Upper bound load: %.4f",...
                                 "   - Lower bound load: %.4f",...
                                 ">> Current frame: %d",...
-                                "   - tilt angle: %.2f°",...
+                                "   - tilt angle: %.2f\x00B0",...
                                 "   - Upper bound load: %.4f",...
                                 "   - Lower bound load: %.4f"],'\n'),...
                                 xx(frame).teta/pi*180, xx(frame).pval,-xx(frame).dval,...
@@ -289,11 +296,11 @@ function SpiValChanged(src,event)
     % Write output message
     tt1.Value=sprintf(join(["------------------Collapse results summary------------------",...
                             ">> Limit solution:",...
-                            "   - Collapse tilt angle: %.2f°",...
+                            "   - Collapse tilt angle: %.2f\x00B0",...
                             "   - Upper bound load: %.4f",...
                             "   - Lower bound load: %.4f",...
                             ">> Current frame: %d",...
-                            "   - tilt angle: %.2f°",...
+                            "   - tilt angle: %.2f\x00B0",...
                             "   - Upper bound load: %.4f",...
                             "   - Lower bound load: %.4f"],'\n'),...
                             xx(Converged_step(end)).teta/pi*180, xx(Converged_step(end)).pval,-xx(Converged_step(end)).dval,...

@@ -34,15 +34,18 @@ colorbar(ax);
 for i=1:size(Int_i,1)
     Int_ctd=(P(Int_i(i,1),2:3)+P(Int_i(i,2),2:3))/2;
     Int_len=Int_i(i,end-2);
+    Int_c=Int_i(i,end-1);
+    Int_tanphi=Int_i(i,end);
     Int_vecs=Int_i(i,5:6);
     Int_vecn=Int_i(i,8:9);
     fn=xf(i,1)+xf(i,3);
     fs=xf(i,2)+xf(i,4);
     cf=norm(fn*Int_vecn+fs*Int_vecs,2);
-    if cf>max(max(abs(xf)))*1e-9
+    if abs(fn-Int_c/Int_tanphi*Int_len*polyL(1,end-1))>max(max(abs(xf)))*1e-9
         % ff=log10(cf)*normalize(fn*Int_vecn+fs*Int_vecs,2,"norm");
         ff=fn*Int_vecn+fs*Int_vecs;
-        ee=(-xf(i,1)*Int_len/2+xf(i,3)*Int_len/2)/fn;
+        ee=(-xf(i,1)*Int_len/2+xf(i,3)*Int_len/2)/(fn-Int_c/Int_tanphi*Int_len*polyL(1,end-1));
+        % ee=(-xf(i,1)*Int_len/2+xf(i,3)*Int_len/2)/fn;
         xs=Int_ctd(1)+ee*Int_vecs(1)-scale*charlength*ff(1)/2;
         ys=Int_ctd(2)+ee*Int_vecs(2)-scale*charlength*ff(2)/2;
         xe=Int_ctd(1)+ee*Int_vecs(1)+scale*charlength*ff(1)/2;

@@ -4,9 +4,6 @@ function [P, polyL, int_i] = Load_wall_data_2(filename, pathname, ax1)
 % WRITE THE MATRIX OF THE NODES P
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %number of blocks and polylines in the walls
-fig=ancestor(ax1,"figure","toplevel");
-d=uiprogressdlg(fig,'Title','Import model');
-d.Message = 'Get geometry from .dxf file...';
 [lwpolylayers,lwpolylines] = dxf2coord(filename, pathname);
 n_blocks = length(lwpolylayers);
 n_polylines = length(lwpolylines);
@@ -45,73 +42,89 @@ P = round(P,3);
 % plot (P(:,2), P(:,3), "o"), hold on % oppure plot (P(:,2),P(:,3),"o")
 
 %initialise the matrix to store the centroids of the blocks and the area
+
 coord_G = zeros(n_blocks,4);
 A = zeros(n_blocks,1);
 m=1;  %counter to avoid the empty row 
-
-d.Value = .33;
-d.Message = 'Plot model...';
-axis(ax1,"auto");
 for n = 1 : n_blocks
-    i = 1;
-    for j = 1 : length(lwpolylines)
-        if n == lwpolylines(j,1)
-            temp(1,i) = lwpolylines(j,2);
-            temp(2,i) = lwpolylines(j,3);
-            i = i+1;
-        end
-    end
-    i = i-1;
-    temp(:,i) = [] ;   % removes last column
+    temp = [lwpolylines(n == lwpolylines(:,1),2)';...
+            lwpolylines(n == lwpolylines(:,1),3)'];
+    temp(:,end) = [] ;   % removes last column
 
     %plot all the elements
     polyin = polyshape(temp(1,:), temp(2,:));
-    % figure(1),box on, axis equal, hold on
-    % xlabel('x [mm]'),ylabel('y [mm]')
-    plot(ax1,polyin), hold(ax1,"on")
-    clear temp;
 
     %create the matrix of the coordinate of the centroids
-        coord_G(m,1) = m; 
-        [coord_G(m,2), coord_G(m,3)] = centroid(polyin);
-        coord_G(m,4) = 0;
+    coord_G(m,1) = m; 
+    [coord_G(m,2), coord_G(m,3)] = centroid(polyin);
+    coord_G(m,4) = 0;
         
     %Compute the area
-        A(m,1) = area(polyin);
+    A(m,1) = area(polyin);
         
     %Write the block numbers in the plot
-        m = m+1;
+    m = m+1;
+    clear temp;
 end
-%plot(coord_G(:,2), coord_G(:,3), 'ok'), hold on
-text(ax1,coord_G(:,2), coord_G(:,3), [num2str(coord_G(:,1))]);
-% plot ruler
-model_aabb=[min(P(:,2)) min(P(:,3)) max(P(:,2)) max(P(:,3))];
-width=10^fix(log10(model_aabb(3)-model_aabb(1)));
-if width<(model_aabb(3)-model_aabb(1))
-    width=width*fix((model_aabb(3)-model_aabb(1))/2/width);
-else
-    width=width/2;
-end
-height=width/10;
-fill(ax1,[0,width/4,width/4,0], [-height*3,-height*3,-height*2,-height*2], [0 0 0])
-fill(ax1,[width/4,width/2,width/2,width/4], [-height*3,-height*3,-height*2,-height*2], [1 1 1])
-fill(ax1,[width/2,3*width/4,3*width/4,width/2], [-height*3,-height*3,-height*2,-height*2], [0 0 0])
-fill(ax1,[3*width/4,width,width,3*width/4], [-height*3,-height*3,-height*2,-height*2], [1 1 1])
-text(ax1,0,-height*4,"0.00 m");
-text(ax1,width,-height*4,sprintf("%.2f m",width/1000));
 
-% axis(ax1,"padded")
-% - rewrite for adaption of old MATLAB version
-set(ax1,"PlotBoxAspectRatioMode","manual");
-set(ax1,"DataAspectRatio",[1 1 1]);
-xl=get(ax1,"XLim");
-yl=get(ax1,"YLim");
-xm=((xl(2)-xl(1))-(model_aabb(3)-model_aabb(1)))/2;
-ym=((yl(2)-yl(1))-(model_aabb(4)-model_aabb(2)))/2;
-if xm <= ym
-    set(ax1,"XLim",[mean(xl)-(model_aabb(3)-model_aabb(1))/2/0.7 mean(xl)+(model_aabb(3)-model_aabb(1))/2/0.7]);
-else
-    set(ax1,"YLim",[mean(yl)-(model_aabb(4)-model_aabb(2))/2/0.7 mean(yl)+(model_aabb(4)-model_aabb(2))/2/0.7]);
+
+if ~isempty(ax1)
+    fig=ancestor(ax1,"figure","toplevel");
+    d=uiprogressdlg(fig,'Title','Import model');
+    d.Message = 'Get geometry from .dxf file...';
+    d.Value = .33;
+    d.Message = 'Plot model...';
+    axis(ax1,"auto");
+    for n = 1 : n_blocks
+        i = 1;
+        for j = 1 : length(lwpolylines)
+            if n == lwpolylines(j,1)
+                temp(1,i) = lwpolylines(j,2);
+                temp(2,i) = lwpolylines(j,3);
+                i = i+1;
+            end
+        end
+        i = i-1;
+        temp(:,i) = [] ;   % removes last column
+    
+        %plot all the elements
+        polyin = polyshape(temp(1,:), temp(2,:));
+        % figure(1),box on, axis equal, hold on
+        % xlabel('x [mm]'),ylabel('y [mm]')
+        plot(ax1,polyin), hold(ax1,"on")
+        clear temp;
+    end
+    %plot(coord_G(:,2), coord_G(:,3), 'ok'), hold on
+    text(ax1,coord_G(:,2), coord_G(:,3), [num2str(coord_G(:,1))]);
+    % plot ruler
+    model_aabb=[min(P(:,2)) min(P(:,3)) max(P(:,2)) max(P(:,3))];
+    width=10^fix(log10(model_aabb(3)-model_aabb(1)));
+    if width<(model_aabb(3)-model_aabb(1))
+        width=width*fix((model_aabb(3)-model_aabb(1))/2/width);
+    else
+        width=width/2;
+    end
+    height=width/10;
+    fill(ax1,[0,width/4,width/4,0], [-height*3,-height*3,-height*2,-height*2], [0 0 0])
+    fill(ax1,[width/4,width/2,width/2,width/4], [-height*3,-height*3,-height*2,-height*2], [1 1 1])
+    fill(ax1,[width/2,3*width/4,3*width/4,width/2], [-height*3,-height*3,-height*2,-height*2], [0 0 0])
+    fill(ax1,[3*width/4,width,width,3*width/4], [-height*3,-height*3,-height*2,-height*2], [1 1 1])
+    text(ax1,0,-height*4,"0.00 m");
+    text(ax1,width,-height*4,sprintf("%.2f m",width/1000));
+    
+    % axis(ax1,"padded")
+    % - rewrite for adaption of old MATLAB version
+    set(ax1,"PlotBoxAspectRatioMode","manual");
+    set(ax1,"DataAspectRatio",[1 1 1]);
+    xl=get(ax1,"XLim");
+    yl=get(ax1,"YLim");
+    xm=((xl(2)-xl(1))-(model_aabb(3)-model_aabb(1)))/2;
+    ym=((yl(2)-yl(1))-(model_aabb(4)-model_aabb(2)))/2;
+    if xm <= ym
+        set(ax1,"XLim",[mean(xl)-(model_aabb(3)-model_aabb(1))/2/0.7 mean(xl)+(model_aabb(3)-model_aabb(1))/2/0.7]);
+    else
+        set(ax1,"YLim",[mean(yl)-(model_aabb(4)-model_aabb(2))/2/0.7 mean(yl)+(model_aabb(4)-model_aabb(2))/2/0.7]);
+    end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -169,8 +182,10 @@ polyL(:, n_max_nodi+4) = A;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %IDENTIFY THE INTERFACES int_i
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-d.Value = .67;
-d.Message = 'Identify the interfaces...';
+if ~isempty(ax1)
+    d.Value = .67;
+    d.Message = 'Identify the interfaces...';
+end
 % Initialize the interface matrix
 interfaces = [];
 
@@ -230,7 +245,9 @@ for i = 1:num_interfaces
     int_i(i, 1:11) = [N1, N2, E1, E2, t_i, n_i, L];
     
 end
-% Close dialog box
-d.Value=1;
-close(d)
+if ~isempty(ax1)
+    % Close dialog box
+    d.Value=1;
+    close(d)
+end
 end
